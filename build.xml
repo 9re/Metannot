@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<project name="metannot" default="compile" basedir=".">
+  <!-- various directories used when building things -->
+  <property name="src.dir" value="src"/>
+  <property name="test.dir" value="test"/>
+  <property name="deploy.dir" value="out/src"/>
+  <property name="classes.dir" value="${deploy.dir}/classes"/>
+  <property name="test.classes.dir" value="out/test/classes" />
+  <property name="out.gen" value="out/gen"/>
+
+  <!-- read in the desired configuration local configuration -->
+  <property file="build.properties"/>
+  <!-- if build.properties does not specify javac.home we provide a default -->
+  <property name="javac.home"  value="${java.home}/.."/>
+  
+  <!-- defines our classpath -->
+  <path id="base.classpath">
+    <pathelement location="${classes.dir}"/>
+  </path>
+  <path id="build.classpath">
+    <path refid="base.classpath"/>
+  </path>
+
+  <!-- prepares the application directories -->
+  <target name="prepare">
+    <mkdir dir="${deploy.dir}"/>
+    <mkdir dir="${deploy.dir}/lib"/>
+    <mkdir dir="${classes.dir}"/>
+    <mkdir dir="${test.dir}"/>
+    <mkdir dir="${test.classes.dir}"/>
+    <mkdir dir="${out.gen}"/>
+  </target>
+
+  <!-- cleans out the intermediate build files -->
+  <target name="clean" description="Cleans out build results.">
+    <delete dir="out"/>
+  </target>
+
+  <!-- wipes the entire build directory clean -->
+  <target name="distclean" description="Completely removes build result directory.">
+    <delete dir="out"/>
+  </target>
+
+  <!-- builds the java class files -->
+  <target name="compile" depends="prepare" description="Compiles the code.">
+    <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
+           source="1.6" target="1.6" encoding="utf-8"
+           srcdir="${src.dir}" destdir="${classes.dir}">
+      <classpath refid="build.classpath"/>
+      <compilerarg value="-Xlint"/>
+      <compilerarg value="-Xlint:-serial"/>
+    </javac>
+  </target>
+
+  <target name="test" depends="dist" description="Run tests.">
+    <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
+	   source="1.6" target="1.6" encoding="utf-8"
+	   srcdir="${test.dir}" destdir="${test.classes.dir}">
+      <classpath refid="build.classpath" />
+      <classpath>
+	<pathelement path="${deploy.dir}/metannot.jar"/>
+      </classpath>
+      <compilerarg line="-processorpath ${deploy.dir}/metannot.jar"/>
+      <compilerarg line="-processor com.kayac.metannot.MetannotProcessor"/>
+      <compilerarg line="-s ${out.gen}"/>
+    </javac>
+  </target>
+
+  <!-- rebuilds everything -->
+  <target name="all" depends="clean,prepare,compile,dist,test,gentest"
+          description="Cleans and rebuilds everything including documentation."/>
+
+  <!-- builds our distribution jar file -->
+  <target name="dist" depends="prepare,compile"
+          description="Compiles the code and builds our jar file.">
+    <jar destfile="${deploy.dir}/metannot.jar" basedir="${classes.dir}">
+      <service type="javax.annotation.processing.Processor"
+               provider="com.kayac.metannot.MetannotProcessor"/>
+    </jar>
+  </target>
+
+  <target name="gentest" depends="test">
+    <mkdir dir="out/gentest"/>
+    <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
+	   source="1.6" target="1.6" encoding="utf-8"
+	   srcdir="gentest" destdir="out/gentest">
+      <classpath refid="build.classpath" />
+      <classpath>
+	<pathelement path="${deploy.dir}/metannot.jar"/>
+	<pathelement path="out/test/classes"/>
+	<pathelement path="out/gen"/>
+      </classpath>
+    </javac>
+
+    <java classname="com.kayac.metannot.gentest.TestGentest">
+      <classpath>
+	<pathelement path="out/gentest"/>
+	<pathelement path="out/test/classes"/>
+	<pathelement path="out/src/metannot.jar"/>
+	<pathelement path="/usr/lib/jvm/java-6-openjdk-amd64/lib/tools.jar"/>
+      </classpath>
+    </java>
+  </target>
+
+</project>

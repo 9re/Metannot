@@ -1,0 +1,11 @@
+- Make sure template writer method declares 'throws IOException' 
+- Add test for generated annotation writer class
+
+
+
+
+
+
+
+
+

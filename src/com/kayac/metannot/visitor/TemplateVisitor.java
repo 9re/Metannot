@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
+import javax.tools.Diagnostic.Kind;
 
 import com.kayac.metannot.annotation.Template;
 import com.kayac.metannot.model.MetannotTemplate;
@@ -48,9 +49,42 @@ public class TemplateVisitor extends TreeTranslator {
                 String source = tree.toString();
                 int start = source.indexOf('{');
                 int end = source.lastIndexOf('}') + 1;
-                MetannotTemplate template = getTemplate(source.substring(start, end), annotation, parameterVisitor);
+                source = source.substring(start, end);
                 
+                String writer = null;
+                String className = null;
+                for (JCExpression expression : annotation.getArguments()) {
+                    JCAssign assign = (JCAssign) expression;
+                    String lhs = assign.lhs.toString();
+                    String rhs = ((JCLiteral)assign.rhs).getValue().toString();
+                    
+                    if ("writer".equals(lhs)) {
+                        writer = rhs;
+                    } else if ("className".equals(lhs)) {
+                        className = rhs;
+                    }
+                }
                 
+                if (className != null) {
+                    Pattern pattern = Pattern.compile("(\\W)" + tree.getSimpleName() + "(\\W)");
+                    Matcher matcher = pattern.matcher(source);
+                    
+                    
+                    int pos = 0;
+                    StringBuilder builder = new StringBuilder();
+                    while (matcher.find(pos)) {
+                        builder.append(source.subSequence(pos, matcher.start()));
+                        builder.append(matcher.group(1));
+                        builder.append(className);
+                        builder.append(matcher.group(2));
+                        pos = matcher.end();
+                    }
+                    builder.append(source.substring(pos));
+                    source = builder.toString();
+                }
+                
+                registerTemplate(
+                    source, writer, annotation, parameterVisitor);
             }
         }
     }
@@ -64,8 +98,23 @@ public class TemplateVisitor extends TreeTranslator {
                 TemplateParameterVisitor parameterVisitor = new TemplateParameterVisitor(mProcessingEnvironment);
                 tree.accept(parameterVisitor);
                 
-                mTemplates.add(
-                    getTemplate(tree.toString(), annotation, parameterVisitor));
+                String writer = null;
+                for (JCExpression expression : annotation.getArguments()) {
+                    JCAssign assign = (JCAssign) expression;
+                    String lhs = assign.lhs.toString();
+                    String rhs = ((JCLiteral)assign.rhs).getValue().toString();
+                    
+                    if ("writer".equals(lhs)) {
+                        writer = rhs;
+                    } else if ("className".equals(lhs)) {
+                        mProcessingEnvironment.getMessager()
+                            .printMessage(Kind.ERROR, "You should not specify className for method templates.");
+                        return;
+                    }
+                }
+                
+                registerTemplate(
+                    tree.toString(), writer, annotation, parameterVisitor);
             }
         }
         
@@ -78,14 +127,12 @@ public class TemplateVisitor extends TreeTranslator {
         }
     }
     
-    private MetannotTemplate getTemplate(String source, JCAnnotation annotation, TemplateParameterVisitor parameterVisitor) {
+    private void registerTemplate(String source, String writer, JCAnnotation annotation, TemplateParameterVisitor parameterVisitor) {
         List<MetannotTemplateParameter> parameters = new ArrayList<MetannotTemplateParameter>();
         int matchPos = 0;
         for (JCVariableDecl variableDecl : parameterVisitor.getVarDecs()) {
             String varDecSource = variableDecl.toString().replace("\n", "\\s+").replace("()", "(\\(\\))?") + ";";
             Pattern pattern = Pattern.compile(varDecSource, Pattern.MULTILINE);
-            
-            Logger.log(pattern);
             
             Matcher matcher = pattern.matcher(source);
             if (matcher.find(matchPos)) {
@@ -97,26 +144,8 @@ public class TemplateVisitor extends TreeTranslator {
             }
         }
         
-        String writer = null;
-        String className = null;
-        for (JCExpression expression : annotation.getArguments()) {
-            JCAssign assign = (JCAssign) expression;
-            String lhs = ((JCLiteral)assign.lhs).getValue().toString();
-            String rhs = ((JCLiteral)assign.rhs).getValue().toString();
-            if ("writer".equals(lhs)) {
-                writer = rhs;
-            } else if ("className".equals(lhs)) {
-                className = rhs;
-            }
-        }
-        
-        if (className == null) {
-            
-        } else {
-            
-        }
-        
-        return new MetannotTemplate(source.replace("\"", "\\\""), parameters, writer);
+        mTemplates.add(
+            new MetannotTemplate(source.replace("\"", "\\\""), parameters, writer));
     }
     
     @Override

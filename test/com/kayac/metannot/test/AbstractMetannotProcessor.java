@@ -1,10 +1,10 @@
 package com.kayac.metannot.test;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -20,12 +20,12 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 
 import com.kayac.metannot.annotation.Template;
+import com.kayac.metannot.annotation.TemplateParameter;
 import com.kayac.metannot.model.MetannotTemplate;
 import com.kayac.metannot.model.MetannotTemplateParameter;
 import com.kayac.metannot.util.Logger;
@@ -116,16 +116,24 @@ public abstract class AbstractMetannotProcessor extends AbstractProcessor {
             String generationTime = String.format("%1$tFT%1$tH:%1$tM:%1$tS.%1$tL%1$tz", new Date(System.currentTimeMillis()));
             writer.append("package ").append(packageName).append(";\n\n");
             
-            writeImports(templateVisitor, writer);
+            writeImports(writer);
             
-            writer.append("@javax.annotation.Generated(value = \"" + this.getClass().getName() + "\", date = \"" + generationTime + "\")\n");
             writer
-                 .append("public class ").append(simpleName)
-                 .append(" extends ").append(originalName);
+                .append("@javax.annotation.Generated(value = \"" + this.getClass().getName() + "\", date = \"" + generationTime + "\")\n")
+                .append("@javax.annotation.processing.SupportedAnnotationTypes(\"com.kayac.metannot.annotation.Template\")\n")
+                .append("@javax.annotation.processing.SupportedSourceVersion(javax.lang.model.SourceVersion.RELEASE_6)\n")
+                .append("public class ").append(simpleName)
+                .append(" extends ").append(originalName);
             
+            Map<String, String> templateParams = new HashMap<String, String>();
             //
-            writeTemplateWriters(templateVisitor, element, writer);
-            writeImportWriter(templateVisitor, element, writer);
+            {
+                StringWriter stringWriter = new StringWriter();
+                writeTemplateWriters(templateVisitor, element, stringWriter);
+                templateParams.put("templateWriters", stringWriter.toString());
+            }
+            writeImportWriter(templateVisitor, element, templateParams);
+            writeClassImpl(writer, processingEnv.getMessager(), templateParams);;
             //
             writer.flush();
             processed = true;
@@ -146,21 +154,7 @@ public abstract class AbstractMetannotProcessor extends AbstractProcessor {
         return processed;
     }
     
-    //protected abstract void writeImports(Writer writer) throws IOException;
-    
-    private void writeImports(TemplateVisitor templateVisitor, Writer writer) throws IOException {
-        List<String> imports = templateVisitor.getImports();
-        for (String strImport : imports) {
-            writer
-                .append("import ")
-                .append(strImport)
-                .append(";\n");
-        }
-        
-        writer.append('\n');
-    }
-    
-    private void writeImportWriter(TemplateVisitor templateVisitor, TypeElement typeElement, Writer writer) throws IOException {
+    private void writeImportWriter(TemplateVisitor templateVisitor, TypeElement typeElement, Map<String, String> templateParams) throws IOException {
         { // 
             Map<String, JCMethodDecl> absMethods = templateVisitor.getAbstractMethods();
             if (!absMethods.containsKey(IMPORT_WRITER)) {
@@ -188,37 +182,24 @@ public abstract class AbstractMetannotProcessor extends AbstractProcessor {
                         "Throws expression should be 'throws IOException' at " + IMPORT_WRITER + " in " + typeElement);
                 return;
             }
-            writeModifier(writerDecl.mods.getFlags(), writer);
         }
         
-        writer
-            .append("void ")
-            .append(IMPORT_WRITER)
-            .append("(Writer writer) throws IOException {\n")
-            .append("    for (String strImport :\n")
-            .append("         new String[] {");
+        StringBuilder builder = new StringBuilder();
+        builder.append("new String[] {");
         for (Iterator<String> iter = templateVisitor.getImports().iterator();;) {
-            writer
-                .append('"')
+            builder
+                .append("\"")
                 .append(iter.next())
-                .append('"');
-            
+                .append("\"");
             if (iter.hasNext()) {
-                writer.append(", ");
+                builder.append(", ");
             } else {
                 break;
             }
         }
+        builder.append("}");
         
-        writer
-            .append("}) {\n")
-            .append("        writer\n")
-            .append("            .append(\"import \")\n")
-            .append("            .append(strImport)\n")
-            .append("            .append(\";\\n\");\n")
-            .append("    }\n")
-            .append("    writer.append('\\n');\n")
-            .append("}\n");
+        templateParams.put("strImports", builder.toString());
     }
     
     private void writeTemplateWriters(TemplateVisitor templateVisitor, TypeElement element, Writer writer) throws IOException {
@@ -231,121 +212,106 @@ public abstract class AbstractMetannotProcessor extends AbstractProcessor {
                 return;
             }
             
-            JCMethodDecl abstractMethod = abstractMethods.get(template.writer);
-            writeModifier(abstractMethod.mods.getFlags(), writer);
-            
             writer
-                .append("void ")
+                .append("protected void ")
                 .append(template.writer)
-                .append("(Writer writer, Messager messager, Map<String, String> params) throws IOException {\n")
-                .append("    String template = \"")
-                .append(template.template.replace("\n", "\\n"))
-                .append("\";\n");
+                .append("(Writer writer, Messager messager, Map<String, String> params) throws IOException ");
+            
+            Map<String, String> params = new HashMap<String, String>();
+            
+            params.put("template", "\"" + template.template.replace("\n", "\\n") + "\"");
+            
+            StringBuilder parametersBuilder = new StringBuilder();
+            parametersBuilder.append("new String[]{");
+            
+            StringBuilder indecesBuilder = new StringBuilder();
+            indecesBuilder.append("new int[]{");
             
             if (template.parameters.size() > 0) {
-                StringBuilder builder = new StringBuilder();
-                builder.append("    String[] parameters = new String[]{");
-                writer
-                    .append("    int pos = 0;\n    StringBuilder builder = new StringBuilder();\n")
-                    .append("    int[] indeces = new int[]{");
-                
                 for (Iterator<MetannotTemplateParameter> iter = template.parameters.iterator();;){
                     MetannotTemplateParameter parameter = iter.next();
-                    writer.append(parameter.start + ", " + parameter.end);
-                    builder
+                    indecesBuilder.append(parameter.start + ", " + parameter.end);
+                    parametersBuilder
                         .append("\"")
                         .append(parameter.key)
                         .append("\"");
                     if (iter.hasNext()) {
-                        writer.append(", ");
-                        builder.append(", ");
+                        indecesBuilder.append(", ");
+                        parametersBuilder.append(", ");
                     } else {
                         break;
                     }
-                    //pos = parameter.end;
                 }
-                builder.append("};\n");
-                
-                writer
-                    .append("};\n")
-                    .append(builder)
-                    .append("    for (int i = 0, j = 0; i < " + template.parameters.size() * 2)
-                    .append(";) {\n")
-                    .append("        int start = indeces[i++];\n")
-                    .append("        int end = indeces[i++];\n")
-                    .append("        builder.append(template.substring(pos, start));\n")
-                    .append("        String key = parameters[j++];\n")
-                    .append("        if (!params.containsKey(key)) {\n")
-                    .append("            messager.printMessage(javax.tools.Diagnostic.Kind.ERROR, \"")
-                    .append("Template parameter \" + key + \" was given, but there are no such key in the params passed to ")
-                    .append(template.writer)
-                    .append("!\");\n            return;\n        }\n")
-                    .append("        builder.append(params.get(key))\n")
-                    .append("               .append('\\n');\n")
-                    .append("        pos = end;\n")
-                    .append("    }\n")
-                    .append("    builder.append(template.substring(pos));\n")
-                    .append("    writer.append(builder);\n");
-            } else {
-                writer.append("    writer.append(template);\n");
             }
             
-            writer
-                .append("}\n");
+            parametersBuilder.append("}");
+            indecesBuilder.append("}");
             
+            params.put("parameters", parametersBuilder.toString());
+            params.put("indeces", indecesBuilder.toString());
+            params.put("writerName", "\"" + template.writer + "\"");
+            
+            writeTemplateWriter(writer, processingEnv.getMessager(), params);
+            writer.append("\n");
         }
     }
     
-    private void writeModifier(Set<Modifier> modifiers, Writer writer) throws IOException {
-        for (Modifier modifier : modifiers) {
-            switch (modifier) {
-            case PROTECTED:
-                writer.append("protected ");
-                break;
-            case PUBLIC:
-                writer.append("public ");
-                break;
-            case PRIVATE:
-                writer.append("private ");
-                break;
-            default:
-                break;
-            }
-        }
-    }
-    
-    protected abstract void writeImports(java.io.Writer writer) throws IOException;
+    protected abstract void writeImports(Writer writer) throws IOException;
     protected abstract void writeClassImpl(Writer writer, Messager messager, Map<String, String> params) throws IOException;
+    protected abstract void writeTemplateWriter(Writer writer, Messager messager, Map<String, String> params) throws IOException;
     
-    public void test() {
-        {
-            StringWriter writer = new StringWriter();
-            try {
-                writeClassImpl(writer, null, null);
-                Logger.log(writer);
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                close(writer);
+    @Template(writer = "writeTemplateWriter")
+    protected void templateWriterTemplate(Writer writer, Messager messager, Map<String, String> params) throws IOException {
+        @TemplateParameter
+        String template = null;
+        int pos = 0;
+        StringBuilder builder = new StringBuilder();
+        @TemplateParameter
+        int[] indeces = null;
+        @TemplateParameter
+        String[] parameters = null;
+        @TemplateParameter
+        String writerName = null;
+        
+        int numIndeces = indeces.length;
+        for (int i = 0, j = 0; i < numIndeces;) {
+            int start = indeces[i++];
+            int end = indeces[i++];
+            builder.append(template.substring(pos, start));
+            String key = parameters[j++];
+            if (!params.containsKey(key)) {
+                messager.printMessage(Kind.ERROR,
+                    "Template parameter " + key + " was given, but there are no such key in the params passed to injectionClassWriter!");
+                return;
             }
+            builder.append(params.get(key));
+            pos = end;
         }
-    }
-    
-    private static final void close(Closeable closeable) {
-        try {
-            if (closeable != null) {
-                closeable.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        builder.append(template.substring(pos));
+        writer.append(builder);
     }
     
     @Template(className = "MetannotProcessor", writer = "writeClassImpl")
-    protected static class MetannotProcessorTemplate extends AbstractProcessor {
-        @Override
-        public boolean process(Set<? extends TypeElement> annotation, RoundEnvironment arg1) {
-            return false;
+    protected abstract static class MetannotProcessorTemplate extends AbstractProcessor {
+        @TemplateParameter(keepLhs = false)
+        String templateWriters;
+        
+        public MetannotProcessorTemplate() {
+            
+        }
+        
+        protected void writeImports(java.io.Writer writer) throws IOException {
+            @TemplateParameter
+            String[] strImports = null;
+            
+            for (String strImport : strImports) {
+                writer
+                    .append("import ")
+                    .append(strImport)
+                    .append(";\n");
+            }
+            
+            writer.append("\n");
         }
     }
 }

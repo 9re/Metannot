@@ -115,10 +115,12 @@ public class MetannotProcessor extends AbstractProcessor {
             
             writeImports(templateVisitor, writer);
             
-            writer.append("@javax.annotation.Generated(value = \"" + this.getClass().getName() + "\", date = \"" + generationTime + "\")\n");
             writer
-                 .append("public class ").append(simpleName)
-                 .append(" extends ").append(originalName).append(" {\n");
+                .append("@javax.annotation.Generated(value = \"" + this.getClass().getName() + "\", date = \"" + generationTime + "\")\n")
+                .append("@javax.annotation.processing.SupportedAnnotationTypes(\"com.kayac.metannot.annotation.Template\")\n")
+                .append("@javax.annotation.processing.SupportedSourceVersion(javax.lang.model.SourceVersion.RELEASE_6)\n")
+                .append("public class ").append(simpleName)
+                .append(" extends ").append(originalName).append(" {\n");
             
             writeTemplateWriters(templateVisitor, element, writer);
             writeImportWriter(templateVisitor, element, writer);
@@ -275,14 +277,13 @@ public class MetannotProcessor extends AbstractProcessor {
                     .append("Template parameter \" + key + \" was given, but there are no such key in the params passed to ")
                     .append(template.writer)
                     .append("!\");\n            return;\n        }\n")
-                    .append("        builder.append(params.get(key))\n")
-                    .append("               .append('\\n');\n")
+                    .append("        builder.append(params.get(key));")
                     .append("        pos = end;\n")
                     .append("    }\n")
                     .append("    builder.append(template.substring(pos));\n")
                     .append("    writer.append(builder);\n");
             } else {
-                writer.append("    writer.append(template);\n");
+                writer.append("    writer.append(template).append('\n');\n");
             }
             
             writer

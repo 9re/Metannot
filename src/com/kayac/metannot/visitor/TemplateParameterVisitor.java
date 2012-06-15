@@ -25,14 +25,15 @@ public class TemplateParameterVisitor extends TreeTranslator {
         super.visitVarDef(tree);
         
         for (JCAnnotation annotation : tree.mods.annotations) {
-            if (isTemplate(annotation)) {
+            if (isTemplateParameter(annotation)) {
                 Logger.log("annotated var:", tree);
                 
+                /*
                 if (tree.init != null) {
                     mProcessingEnvironment.getMessager()
                         .printMessage(Kind.ERROR, "Do not initialize variable/field annotated by @" +
                             TemplateParameter.class.getSimpleName());
-                }
+                }*/
                 mVarDecs.add(tree);
             }
         }
@@ -42,7 +43,7 @@ public class TemplateParameterVisitor extends TreeTranslator {
         return new ArrayList<JCVariableDecl>(mVarDecs);
     }
     
-    private static final boolean isTemplate(JCAnnotation annotation) {
+    public static final boolean isTemplateParameter(JCAnnotation annotation) {
         return annotation.type != null ?
             TemplateParameter.class.getCanonicalName().equals(annotation.type.toString()) :
             TemplateParameter.class.getSimpleName().equals(annotation.annotationType.toString());

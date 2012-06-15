@@ -12,11 +12,14 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
 import javax.tools.Diagnostic.Kind;
 
+import sun.tools.tree.VarDeclarationStatement;
+import sun.util.logging.resources.logging;
+
 import com.kayac.metannot.annotation.Template;
+import com.kayac.metannot.annotation.TemplateParameter;
 import com.kayac.metannot.model.MetannotTemplate;
 import com.kayac.metannot.model.MetannotTemplateParameter;
 import com.kayac.metannot.util.Logger;
-import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
@@ -114,7 +117,7 @@ public class TemplateVisitor extends TreeTranslator {
                 }
                 
                 registerTemplate(
-                    tree.toString(), writer, annotation, parameterVisitor);
+                    tree.body.toString(), writer, annotation, parameterVisitor);
             }
         }
         
@@ -131,21 +134,52 @@ public class TemplateVisitor extends TreeTranslator {
         List<MetannotTemplateParameter> parameters = new ArrayList<MetannotTemplateParameter>();
         int matchPos = 0;
         for (JCVariableDecl variableDecl : parameterVisitor.getVarDecs()) {
-            String varDecSource = variableDecl.toString().replace("\n", "\\s+").replace("()", "(\\(\\))?") + ";";
-            Pattern pattern = Pattern.compile(varDecSource, Pattern.MULTILINE);
+            boolean shouldKeepLhs = shouldKeepLhs(variableDecl);
+            Logger.log("keep lhs:", shouldKeepLhs);
+            Logger.log("init:", variableDecl.init);
             
-            Matcher matcher = pattern.matcher(source);
-            if (matcher.find(matchPos)) {
-                
-                parameters.add(
-                    new MetannotTemplateParameter(
-                        matcher.start(), matcher.end(), variableDecl.name.toString()));
-                matchPos = matcher.end();
+            int annotationPos = source.indexOf("@" + TemplateParameter.class.getSimpleName() + "(", matchPos);
+            
+            if (annotationPos > -1) {
+                String key = variableDecl.name.toString();
+                if (shouldKeepLhs) {
+                    int varTypePos =  source.indexOf(variableDecl.vartype.toString(), annotationPos);
+                    source = source.substring(0, annotationPos) +
+                             source.substring(varTypePos);
+                    
+                    int rhsPos = source.indexOf(
+                        variableDecl.init.toString(), annotationPos);
+                    int end = source.indexOf(';', rhsPos);
+                    
+                    parameters.add(
+                        new MetannotTemplateParameter(
+                            rhsPos, end, key));
+                } else {
+                    int end = source.indexOf(';', annotationPos) + 1;
+                    parameters.add(
+                        new MetannotTemplateParameter(
+                            annotationPos, end, key));
+                    matchPos = end;
+                }
             }
         }
         
         mTemplates.add(
-            new MetannotTemplate(source.replace("\"", "\\\""), parameters, writer));
+            new MetannotTemplate(source.replace("\\", "\\\\").replace("\"", "\\\""), parameters, writer));
+    }
+    
+    private static boolean shouldKeepLhs(JCVariableDecl variableDecl) {
+        for (JCAnnotation annotation : variableDecl.mods.annotations) {
+            if (TemplateParameterVisitor.isTemplateParameter(annotation)) {
+                for (JCExpression expression : annotation.args) {
+                    JCAssign assign = (JCAssign) expression;
+                    if ("keepLhs".equals(assign.lhs.toString())) {
+                        return Boolean.parseBoolean(assign.rhs.toString());
+                    }
+                }
+            }
+        }
+        return true;
     }
     
     @Override

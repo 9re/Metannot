@@ -8,5 +8,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 @Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD})
 public @interface TemplateParameter {
-
+    boolean keepLhs() default true;
 }

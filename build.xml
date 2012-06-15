@@ -7,6 +7,8 @@
   <property name="classes.dir" value="${deploy.dir}/classes"/>
   <property name="test.classes.dir" value="out/test/classes" />
   <property name="out.gen" value="out/gen"/>
+  <property name="out.gen.2nd" value="out/gen-2nd/"/>
+  <property name="out.gen.3rd" value="out/gen-3rd/"/>
 
   <!-- read in the desired configuration local configuration -->
   <property file="build.properties"/>
@@ -52,7 +54,7 @@
     </javac>
   </target>
 
-  <target name="test" depends="dist" description="Run tests.">
+  <target name="test-1st" depends="dist" description="Run tests.">
     <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
 	   source="1.6" target="1.6" encoding="utf-8"
 	   srcdir="${test.dir}" destdir="${test.classes.dir}">
@@ -67,7 +69,7 @@
   </target>
 
   <!-- rebuilds everything -->
-  <target name="all" depends="clean,prepare,compile,dist,test,gentest"
+  <target name="all" depends="clean,prepare,compile,dist,test-1st,test-2nd,test-3rd"
           description="Cleans and rebuilds everything including documentation."/>
 
   <!-- builds our distribution jar file -->
@@ -79,27 +81,63 @@
     </jar>
   </target>
 
-  <target name="gentest" depends="test">
-    <mkdir dir="out/gentest"/>
+  <target name="test-2nd" depends="test-1st">
+    <mkdir dir="${out.gen.2nd}"/>
+
+    <copy todir="${out.gen}">
+      <fileset dir="${classes.dir}"/>
+      <fileset dir="${test.classes.dir}"/>
+    </copy>
+    
+    <jar destfile="${out.gen}/metannot.jar" basedir="${out.gen}"
+	 >
+      <service type="javax.annotation.processing.Processor"
+               provider="com.kayac.metannot.test.MetannotProcessor"/>
+    </jar>
+
     <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
 	   source="1.6" target="1.6" encoding="utf-8"
-	   srcdir="gentest" destdir="out/gentest">
+	   srcdir="${test.dir}" destdir="${out.gen.2nd}">
       <classpath refid="build.classpath" />
       <classpath>
-	<pathelement path="${deploy.dir}/metannot.jar"/>
+	<pathelement path="${out.gen}/metannot.jar"/>
 	<pathelement path="out/test/classes"/>
 	<pathelement path="out/gen"/>
       </classpath>
+      <compilerarg line="-processorpath ${out.gen}/metannot.jar"/>
+      <compilerarg line="-processor com.kayac.metannot.test.MetannotProcessor"/>
+      <compilerarg line="-s ${out.gen.2nd}"/>
     </javac>
+  </target>
 
-    <java classname="com.kayac.metannot.gentest.TestGentest">
+
+  <target name="test-3rd" depends="test-2nd">
+    <mkdir dir="${out.gen.3rd}"/>
+
+    <copy todir="${out.gen.2nd}">
+      <fileset dir="${classes.dir}"/>
+      <fileset dir="${test.classes.dir}"/>
+    </copy>
+    
+    <jar destfile="${out.gen.2nd}/metannot.jar" basedir="${out.gen.2nd}"
+	 >
+      <service type="javax.annotation.processing.Processor"
+               provider="com.kayac.metannot.test.MetannotProcessor"/>
+    </jar>
+
+    <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
+	   source="1.6" target="1.6" encoding="utf-8"
+	   srcdir="${test.dir}" destdir="${out.gen.3rd}">
+      <classpath refid="build.classpath" />
       <classpath>
-	<pathelement path="out/gentest"/>
+	<pathelement path="${out.gen.2nd}/metannot.jar"/>
 	<pathelement path="out/test/classes"/>
-	<pathelement path="out/src/metannot.jar"/>
-	<pathelement path="/usr/lib/jvm/java-6-openjdk-amd64/lib/tools.jar"/>
+	<pathelement path="${out.gen.2nd}"/>
       </classpath>
-    </java>
+      <compilerarg line="-processorpath ${out.gen.2nd}/metannot.jar"/>
+      <compilerarg line="-processor com.kayac.metannot.test.MetannotProcessor"/>
+      <compilerarg line="-s ${out.gen.3rd}"/>
+    </javac>
   </target>
 
 </project>

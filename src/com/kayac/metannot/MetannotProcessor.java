@@ -16,6 +16,7 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -115,10 +116,15 @@ public class MetannotProcessor extends AbstractProcessor {
             
             writeImports(templateVisitor, writer);
             
+            
             writer
-                .append("@javax.annotation.Generated(value = \"" + this.getClass().getName() + "\", date = \"" + generationTime + "\")\n")
-                .append("@javax.annotation.processing.SupportedAnnotationTypes(\"com.kayac.metannot.annotation.Template\")\n")
-                .append("@javax.annotation.processing.SupportedSourceVersion(javax.lang.model.SourceVersion.RELEASE_6)\n")
+                .append("@javax.annotation.Generated(value = \"" + this.getClass().getName() + "\", date = \"" + generationTime + "\")\n");
+            
+            for (AnnotationMirror mirror : element.getAnnotationMirrors()) {
+                writer.append(mirror.toString()).append('\n');
+            }
+            
+            writer
                 .append("public class ").append(simpleName)
                 .append(" extends ").append(originalName).append(" {\n");
             

@@ -12,14 +12,10 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
 import javax.tools.Diagnostic.Kind;
 
-import sun.tools.tree.VarDeclarationStatement;
-import sun.util.logging.resources.logging;
-
 import com.kayac.metannot.annotation.Template;
 import com.kayac.metannot.annotation.TemplateParameter;
 import com.kayac.metannot.model.MetannotTemplate;
 import com.kayac.metannot.model.MetannotTemplateParameter;
-import com.kayac.metannot.util.Logger;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
@@ -46,7 +42,7 @@ public class TemplateVisitor extends TreeTranslator {
         
         for (JCAnnotation annotation : tree.mods.annotations) {
             if (isTemplate(annotation)) {
-                TemplateParameterVisitor parameterVisitor = new TemplateParameterVisitor(mProcessingEnvironment);
+                TemplateParameterVisitor parameterVisitor = new TemplateParameterVisitor();
                 tree.accept(parameterVisitor);
                 
                 String source = tree.toString();
@@ -98,7 +94,7 @@ public class TemplateVisitor extends TreeTranslator {
         
         for (JCAnnotation annotation : tree.mods.annotations) {
             if (isTemplate(annotation)) {
-                TemplateParameterVisitor parameterVisitor = new TemplateParameterVisitor(mProcessingEnvironment);
+                TemplateParameterVisitor parameterVisitor = new TemplateParameterVisitor();
                 tree.accept(parameterVisitor);
                 
                 String writer = null;
@@ -135,8 +131,6 @@ public class TemplateVisitor extends TreeTranslator {
         int matchPos = 0;
         for (JCVariableDecl variableDecl : parameterVisitor.getVarDecs()) {
             boolean shouldKeepLhs = shouldKeepLhs(variableDecl);
-            Logger.log("keep lhs:", shouldKeepLhs);
-            Logger.log("init:", variableDecl.init);
             
             int annotationPos = source.indexOf("@" + TemplateParameter.class.getSimpleName() + "(", matchPos);
             

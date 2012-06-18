@@ -1,5 +1,6 @@
 package com.kayac.metannot.test;
 
+import java.awt.Menu;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -10,6 +11,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -30,6 +33,7 @@ import com.kayac.metannot.annotation.TemplateParameter;
 import com.kayac.metannot.model.MetannotTemplate;
 import com.kayac.metannot.model.MetannotTemplateParameter;
 import com.kayac.metannot.util.Logger;
+import com.kayac.metannot.util.MetannotUtil;
 import com.kayac.metannot.visitor.TemplateVisitor;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
@@ -127,8 +131,11 @@ public abstract class AbstractMetannotProcessor extends AbstractProcessor {
             }
             
             writer
-                .append("public class ").append(simpleName)
-                .append(" extends ").append(originalName);
+                .append("public class ")
+                .append(simpleName)
+                .append(" extends ")
+                .append(originalName)
+                .append(' ');
             
             Map<String, String> templateParams = new HashMap<String, String>();
             //
@@ -138,7 +145,7 @@ public abstract class AbstractMetannotProcessor extends AbstractProcessor {
                 templateParams.put("templateWriters", stringWriter.toString());
             }
             writeImportWriter(templateVisitor, element, templateParams);
-            writeClassImpl(writer, processingEnv.getMessager(), templateParams);;
+            writeClassImpl(writer, processingEnv.getMessager(), templateParams, simpleName);
             //
             writer.flush();
             processed = true;
@@ -220,7 +227,7 @@ public abstract class AbstractMetannotProcessor extends AbstractProcessor {
             writer
                 .append("protected void ")
                 .append(template.writer)
-                .append("(Writer writer, Messager messager, Map<String, String> params) throws IOException ");
+                .append("(Writer writer, Messager messager, Map<String, String> params, String typename) throws IOException ");
             
             Map<String, String> params = new HashMap<String, String>();
             
@@ -255,54 +262,97 @@ public abstract class AbstractMetannotProcessor extends AbstractProcessor {
             params.put("parameters", parametersBuilder.toString());
             params.put("indeces", indecesBuilder.toString());
             params.put("writerName", "\"" + template.writer + "\"");
+            params.put("oldToken", "\"" + template.templateName + "\"");
+            params.put(
+                "call$writeTemplateParameters$",
+                "$writeTemplateParameters$(template, parameters, params, messager, writerName, builder);");
             
-            writeTemplateWriter(writer, processingEnv.getMessager(), params);
+            writeTemplateWriter(writer, processingEnv.getMessager(), params, null);
             writer.append("\n");
         }
     }
     
     protected abstract void writeImports(Writer writer) throws IOException;
-    protected abstract void writeClassImpl(Writer writer, Messager messager, Map<String, String> params) throws IOException;
-    protected abstract void writeTemplateWriter(Writer writer, Messager messager, Map<String, String> params) throws IOException;
+    protected abstract void writeClassImpl(Writer writer, Messager messager, Map<String, String> params, String typename) throws IOException;
+    protected abstract void writeTemplateWriter(Writer writer, Messager messager, Map<String, String> params, String typename) throws IOException;
     
     @Template(writer = "writeTemplateWriter")
-    protected void templateWriterTemplate(Writer writer, Messager messager, Map<String, String> params) throws IOException {
+    protected void templateWriterTemplate(Writer writer, Messager messager, Map<String, String> params, String typename) throws IOException {
         @TemplateParameter
         String template = null;
-        int pos = 0;
-        StringBuilder builder = new StringBuilder();
-        @TemplateParameter
-        int[] indeces = null;
         @TemplateParameter
         String[] parameters = null;
         @TemplateParameter
         String writerName = null;
+        @TemplateParameter
+        String oldToken = null;
         
-        int numIndeces = indeces.length;
-        for (int i = 0, j = 0; i < numIndeces;) {
-            int start = indeces[i++];
-            int end = indeces[i++];
-            builder.append(template.substring(pos, start));
-            String key = parameters[j++];
-            if (!params.containsKey(key)) {
-                messager.printMessage(Kind.ERROR,
-                    "Template parameter " + key + " was given, but there are no such key in the params passed to injectionClassWriter!");
-                return;
-            }
-            builder.append(params.get(key));
-            pos = end;
+        StringBuilder builder = new StringBuilder();
+        
+        @TemplateParameter(keepLhs = false)
+        String call$writeTemplateParameters$;
+        
+        if (typename != null) {
+            writer.append(
+                MetannotUtil.replaceTokenInString(
+                    builder.toString(), oldToken, typename));
+        } else {
+            writer.append(builder);
         }
-        builder.append(template.substring(pos));
-        writer.append(builder);
     }
     
-    @Template(className = "MetannotProcessor", writer = "writeClassImpl")
+    @Template(writer = "writeClassImpl")
     protected abstract static class MetannotProcessorTemplate extends AbstractProcessor {
         @TemplateParameter(keepLhs = false)
         String templateWriters;
         
         public MetannotProcessorTemplate() {
             
+        }
+        
+        private void $writeTemplateParameters$(String template, String[] parameters, Map<String, String> params, Messager messager, String writerName, StringBuilder builder) {
+            int pos = 0;
+            
+            Pattern templatePattern = Pattern.compile("@" + TemplateParameter.class.getSimpleName() + "\\(");
+            Matcher matcher = templatePattern.matcher(template);
+            int keyIndex = 0;
+            while (true) {
+                if (matcher.find(pos)) {
+                    String strKeepLhs = template.substring(
+                            matcher.end(), template.indexOf(')', matcher.end()));
+                    boolean keepLhs = true;
+                    if (strKeepLhs.length() > 0) {
+                        keepLhs = strKeepLhs.indexOf("true") > -1;
+                    }
+                    
+                    int start, end;
+                    int nextLf = template.indexOf('\n', matcher.end());
+                    String key = parameters[keyIndex ++];
+                    
+                    if (keepLhs) {
+                        start = template.indexOf('=', nextLf + 1) + 2;
+                        end = template.indexOf(';', nextLf + 1);
+                    } else {
+                        start = matcher.start();
+                        end = template.indexOf(';', nextLf + 1);
+                    }
+                    
+                    builder.append(
+                            template.subSequence(
+                                    pos, start));
+                    if (!params.containsKey(key)) {
+                        messager.printMessage(Kind.ERROR,
+                                "Template parameter " + key + " was given, but there are no such key in the params passed to injectionClassWriter!");
+                        return;
+                    }
+                    builder.append(params.get(key));
+                    pos = end;
+                } else {
+                    break;
+                }
+            }
+            
+            builder.append(template.substring(pos));
         }
         
         protected void writeImports(java.io.Writer writer) throws IOException {

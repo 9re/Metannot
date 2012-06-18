@@ -45,7 +45,7 @@
 
   <!-- builds the java class files -->
   <target name="compile" depends="prepare" description="Compiles the code.">
-    <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
+    <javac fork="no" executable="${javac.home}/bin/javac" debug="on"
            source="1.6" target="1.6" encoding="utf-8"
            srcdir="${src.dir}" destdir="${classes.dir}">
       <classpath refid="build.classpath"/>
@@ -55,7 +55,7 @@
   </target>
 
   <target name="test-1st" depends="dist" description="Run tests.">
-    <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
+    <javac fork="no" executable="${javac.home}/bin/javac" debug="on"
 	   source="1.6" target="1.6" encoding="utf-8"
 	   srcdir="${test.dir}" destdir="${test.classes.dir}">
       <classpath refid="build.classpath" />
@@ -95,7 +95,7 @@
                provider="com.kayac.metannot.test.MetannotProcessor"/>
     </jar>
 
-    <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
+    <javac fork="no" executable="${javac.home}/bin/javac" debug="on"
 	   source="1.6" target="1.6" encoding="utf-8"
 	   srcdir="${test.dir}" destdir="${out.gen.2nd}">
       <classpath refid="build.classpath" />
@@ -125,7 +125,7 @@
                provider="com.kayac.metannot.test.MetannotProcessor"/>
     </jar>
 
-    <javac fork="yes" executable="${javac.home}/bin/javac" debug="on"
+    <javac fork="no" executable="${javac.home}/bin/javac" debug="on"
 	   source="1.6" target="1.6" encoding="utf-8"
 	   srcdir="${test.dir}" destdir="${out.gen.3rd}">
       <classpath refid="build.classpath" />

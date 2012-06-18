@@ -16,6 +16,7 @@ import com.kayac.metannot.annotation.Template;
 import com.kayac.metannot.annotation.TemplateParameter;
 import com.kayac.metannot.model.MetannotTemplate;
 import com.kayac.metannot.model.MetannotTemplateParameter;
+import com.kayac.metannot.util.MetannotUtil;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
@@ -64,26 +65,16 @@ public class TemplateVisitor extends TreeTranslator {
                     }
                 }
                 
+                /*
                 if (className != null) {
-                    Pattern pattern = Pattern.compile("(\\W)" + tree.getSimpleName() + "(\\W)");
-                    Matcher matcher = pattern.matcher(source);
-                    
-                    
-                    int pos = 0;
-                    StringBuilder builder = new StringBuilder();
-                    while (matcher.find(pos)) {
-                        builder.append(source.subSequence(pos, matcher.start()));
-                        builder.append(matcher.group(1));
-                        builder.append(className);
-                        builder.append(matcher.group(2));
-                        pos = matcher.end();
-                    }
-                    builder.append(source.substring(pos));
-                    source = builder.toString();
-                }
+                    source = MetannotUtil.replaceTokenInString(
+                        source,
+                        tree.getSimpleName().toString(),
+                        className);
+                }*/
                 
                 registerTemplate(
-                    source, writer, annotation, parameterVisitor);
+                    source, tree.getSimpleName().toString(), writer, parameterVisitor);
             }
         }
     }
@@ -113,7 +104,7 @@ public class TemplateVisitor extends TreeTranslator {
                 }
                 
                 registerTemplate(
-                    tree.body.toString(), writer, annotation, parameterVisitor);
+                    tree.body.toString(), tree.name.toString(), writer, parameterVisitor);
             }
         }
         
@@ -126,7 +117,7 @@ public class TemplateVisitor extends TreeTranslator {
         }
     }
     
-    private void registerTemplate(String source, String writer, JCAnnotation annotation, TemplateParameterVisitor parameterVisitor) {
+    private void registerTemplate(String source, String templateName, String writer, TemplateParameterVisitor parameterVisitor) {
         List<MetannotTemplateParameter> parameters = new ArrayList<MetannotTemplateParameter>();
         int matchPos = 0;
         for (JCVariableDecl variableDecl : parameterVisitor.getVarDecs()) {
@@ -138,11 +129,12 @@ public class TemplateVisitor extends TreeTranslator {
                 String key = variableDecl.name.toString();
                 if (shouldKeepLhs) {
                     int varTypePos =  source.indexOf(variableDecl.vartype.toString(), annotationPos);
+                    /*n
                     source = source.substring(0, annotationPos) +
-                             source.substring(varTypePos);
+                             source.substring(varTypePos);*/
                     
                     int rhsPos = source.indexOf(
-                        variableDecl.init.toString(), annotationPos);
+                        variableDecl.init.toString(), varTypePos);
                     int end = source.indexOf(';', rhsPos);
                     
                     parameters.add(
@@ -159,7 +151,11 @@ public class TemplateVisitor extends TreeTranslator {
         }
         
         mTemplates.add(
-            new MetannotTemplate(source.replace("\\", "\\\\").replace("\"", "\\\""), parameters, writer));
+            new MetannotTemplate(
+                source.replace("\\", "\\\\").replace("\"", "\\\""),
+                parameters,
+                writer,
+                templateName));
     }
     
     private static boolean shouldKeepLhs(JCVariableDecl variableDecl) {
@@ -186,7 +182,8 @@ public class TemplateVisitor extends TreeTranslator {
     
     private static final boolean isTemplate(JCAnnotation annotation) {
         return annotation.type != null ?
-            Template.class.getCanonicalName().equals(annotation.type.toString()) : false;
+            Template.class.getCanonicalName().equals(
+                annotation.type.toString()) : false;
     }
     
     public List<MetannotTemplate> getTemplates() {

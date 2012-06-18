@@ -274,7 +274,7 @@ public class MetannotProcessor extends AbstractProcessor {
             
             writer
                 .append(builder)
-                .append("    $writeTemplateParameters$(template, parameters, params, messager, writerName, builder);\n")
+                .append("    mn.uwvm.metannot.util.MetannotUtil.writeTemplateParameters(template, parameters, params, messager, writerName, builder);\n")
                 .append("    String output = builder.toString();\n")
                 .append("    if (typename != null) {\n")
                 .append("        output = mn.uwvm.metannot.util.MetannotUtil.replaceTokenInString(\n")
@@ -288,55 +288,6 @@ public class MetannotProcessor extends AbstractProcessor {
                 .append("}\n");
             
         }
-        
-        writeTemplateParamWriter(writer);
-    }
-    
-    private void writeTemplateParamWriter(Writer writer) throws IOException {
-        writer
-            .append("private void $writeTemplateParameters$(String template, String[] parameters, Map<String, String> params, Messager messager, String writerName, StringBuilder builder) {\n")
-            .append("            int pos = 0;\n")
-            .append("            \n")
-            .append("            java.util.regex.Pattern templatePattern = java.util.regex.Pattern.compile(\"@TemplateParameter\\\\(\");\n")
-            .append("            java.util.regex.Matcher matcher = templatePattern.matcher(template);\n")
-            .append("            int keyIndex = 0;\n")
-            .append("            while (true) {\n")
-            .append("                if (matcher.find(pos)) {\n")
-            .append("                    String strKeepLhs = template.substring(\n")
-            .append("                            matcher.end(), template.indexOf(')', matcher.end()));\n")
-            .append("                    boolean keepLhs = true;\n")
-            .append("                    if (strKeepLhs.length() > 0) {\n")
-            .append("                        keepLhs = strKeepLhs.indexOf(\"true\") > -1;\n")
-            .append("                    }\n")
-            .append("                    \n")
-            .append("                    int start, end;\n")
-            .append("                    int nextLf = template.indexOf('\\n', matcher.end());\n")
-            .append("                    String key = parameters[keyIndex ++];\n")
-            .append("                    \n")
-            .append("                    if (keepLhs) {\n")
-            .append("                        start = template.indexOf('=', nextLf + 1) + 2;\n")
-            .append("                        end = template.indexOf(';', nextLf + 1);\n")
-            .append("                    } else {\n")
-            .append("                        start = matcher.start();\n")
-            .append("                        end = template.indexOf(';', nextLf + 1);\n")
-            .append("                    }\n")
-            .append("                    \n")
-            .append("                    builder.append(\n")
-            .append("                        template.subSequence(\n")
-            .append("                            pos, start));\n")
-            .append("                    if (!params.containsKey(key)) {\n")
-            .append("                        messager.printMessage(javax.tools.Diagnostic.Kind.ERROR,\n")
-            .append("                                \"Template parameter \" + key + \" was given, but there are no such key in the params passed to injectionClassWriter!\");\n")
-            .append("                        return;")
-            .append("                    }\n")
-            .append("                    builder.append(params.get(key));\n")
-            .append("                    pos = end;\n")
-            .append("                } else {\n")
-            .append("                    break;\n")
-            .append("                }\n")
-            .append("            }\n")
-            .append("            builder.append(template.substring(pos));\n")
-            .append("        }\n");
     }
     
     private void writeModifier(Set<Modifier> modifiers, Writer writer) throws IOException {

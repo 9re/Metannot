@@ -1,6 +1,5 @@
-package com.kayac.metannot.test;
+package mn.uwvm.metannot.test;
 
-import java.awt.Menu;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -28,20 +27,21 @@ import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 
-import com.kayac.metannot.annotation.Template;
-import com.kayac.metannot.annotation.TemplateParameter;
-import com.kayac.metannot.model.MetannotTemplate;
-import com.kayac.metannot.model.MetannotTemplateParameter;
-import com.kayac.metannot.util.Logger;
-import com.kayac.metannot.util.MetannotUtil;
-import com.kayac.metannot.visitor.TemplateVisitor;
+import mn.uwvm.metannot.annotation.Template;
+import mn.uwvm.metannot.annotation.TemplateParameter;
+import mn.uwvm.metannot.model.MetannotTemplate;
+import mn.uwvm.metannot.model.MetannotTemplateParameter;
+import mn.uwvm.metannot.util.Logger;
+import mn.uwvm.metannot.util.MetannotUtil;
+import mn.uwvm.metannot.visitor.TemplateVisitor;
+
 import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 
-@SupportedAnnotationTypes("com.kayac.metannot.annotation.Template")
+@SupportedAnnotationTypes("mn.uwvm.metannot.annotation.Template")
 @SupportedSourceVersion(SourceVersion.RELEASE_6)
 public abstract class AbstractMetannotProcessor extends AbstractProcessor {
     private static final String IMPORT_WRITER = "writeImports";

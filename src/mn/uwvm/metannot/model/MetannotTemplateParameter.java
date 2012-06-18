@@ -1,4 +1,4 @@
-package com.kayac.metannot.model;
+package mn.uwvm.metannot.model;
 
 public class MetannotTemplateParameter {
     public final int start;

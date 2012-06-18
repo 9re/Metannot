@@ -64,7 +64,7 @@
 	<pathelement path="${deploy.dir}/metannot.jar"/>
       </classpath>
       <compilerarg line="-processorpath ${deploy.dir}/metannot.jar"/>
-      <compilerarg line="-processor com.kayac.metannot.MetannotProcessor"/>
+      <compilerarg line="-processor mn.uwvm.metannot.MetannotProcessor"/>
       <compilerarg line="-s ${out.gen}"/>
     </javac>
   </target>
@@ -74,7 +74,7 @@
           description="Compiles the code and builds our jar file.">
     <jar destfile="${deploy.dir}/metannot.jar" basedir="${classes.dir}">
       <service type="javax.annotation.processing.Processor"
-               provider="com.kayac.metannot.MetannotProcessor"/>
+               provider="mn.uwvm.metannot.MetannotProcessor"/>
     </jar>
   </target>
 
@@ -89,7 +89,7 @@
     <jar destfile="${out.gen}/metannot.jar" basedir="${out.gen}"
 	 >
       <service type="javax.annotation.processing.Processor"
-               provider="com.kayac.metannot.test.MetannotProcessor"/>
+               provider="mn.uwvm.metannot.test.MetannotProcessor"/>
     </jar>
 
     <javac fork="no" executable="${javac.home}/bin/javac" debug="on"
@@ -102,7 +102,7 @@
 	<pathelement path="out/gen"/>
       </classpath>
       <compilerarg line="-processorpath ${out.gen}/metannot.jar"/>
-      <compilerarg line="-processor com.kayac.metannot.test.MetannotProcessor"/>
+      <compilerarg line="-processor mn.uwvm.metannot.test.MetannotProcessor"/>
       <compilerarg line="-s ${out.test.1st}"/>
     </javac>
   </target>
@@ -119,7 +119,7 @@
     <jar destfile="${out.test.1st}/metannot.jar" basedir="${out.test.1st}"
 	 >
       <service type="javax.annotation.processing.Processor"
-               provider="com.kayac.metannot.test.MetannotProcessor"/>
+               provider="mn.uwvm.metannot.test.MetannotProcessor"/>
     </jar>
 
     <javac fork="no" executable="${javac.home}/bin/javac" debug="on"
@@ -132,7 +132,7 @@
 	<pathelement path="${out.test.1st}"/>
       </classpath>
       <compilerarg line="-processorpath ${out.test.1st}/metannot.jar"/>
-      <compilerarg line="-processor com.kayac.metannot.test.MetannotProcessor"/>
+      <compilerarg line="-processor mn.uwvm.metannot.test.MetannotProcessor"/>
       <compilerarg line="-s ${out.test.2nd}"/>
     </javac>
   </target>
@@ -148,7 +148,7 @@
     <jar destfile="${out.test.2nd}/metannot.jar" basedir="${out.test.2nd}"
 	 >
       <service type="javax.annotation.processing.Processor"
-               provider="com.kayac.metannot.test.MetannotProcessor"/>
+               provider="mn.uwvm.metannot.test.MetannotProcessor"/>
     </jar>
 
     <javac fork="no" executable="${javac.home}/bin/javac" debug="on"
@@ -161,7 +161,7 @@
 	<pathelement path="${out.test.2nd}"/>
       </classpath>
       <compilerarg line="-processorpath ${out.test.2nd}/metannot.jar"/>
-      <compilerarg line="-processor com.kayac.metannot.test.MetannotProcessor"/>
+      <compilerarg line="-processor mn.uwvm.metannot.test.MetannotProcessor"/>
       <compilerarg line="-s ${out.test.3rd}"/>
     </javac>
   </target>

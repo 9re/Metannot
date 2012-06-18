@@ -1,22 +1,20 @@
-package com.kayac.metannot.visitor;
+package mn.uwvm.metannot.visitor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
 import javax.tools.Diagnostic.Kind;
 
-import com.kayac.metannot.annotation.Template;
-import com.kayac.metannot.annotation.TemplateParameter;
-import com.kayac.metannot.model.MetannotTemplate;
-import com.kayac.metannot.model.MetannotTemplateParameter;
-import com.kayac.metannot.util.MetannotUtil;
+import mn.uwvm.metannot.annotation.Template;
+import mn.uwvm.metannot.annotation.TemplateParameter;
+import mn.uwvm.metannot.model.MetannotTemplate;
+import mn.uwvm.metannot.model.MetannotTemplateParameter;
+
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;

@@ -1,4 +1,4 @@
-package com.kayac.metannot.util;
+package mn.uwvm.metannot.util;
 
 public class Logger {
     public static final void log(Object... objects) {

@@ -1,4 +1,4 @@
-package com.kayac.metannot.annotation;
+package mn.uwvm.metannot.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -6,8 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.SOURCE)
-@Target({ElementType.TYPE, ElementType.METHOD})
-public @interface Template {
-    String writer();
-    String className() default "";
+@Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD})
+public @interface TemplateParameter {
+    boolean keepLhs() default true;
 }

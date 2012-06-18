@@ -1,4 +1,4 @@
-package com.kayac.metannot.model;
+package mn.uwvm.metannot.model;
 
 import java.util.List;
 

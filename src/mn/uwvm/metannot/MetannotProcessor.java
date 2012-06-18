@@ -1,4 +1,4 @@
-package com.kayac.metannot;
+package mn.uwvm.metannot;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -23,18 +23,19 @@ import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 
-import com.kayac.metannot.annotation.Template;
-import com.kayac.metannot.model.MetannotTemplate;
-import com.kayac.metannot.model.MetannotTemplateParameter;
-import com.kayac.metannot.util.Logger;
-import com.kayac.metannot.visitor.TemplateVisitor;
+import mn.uwvm.metannot.annotation.Template;
+import mn.uwvm.metannot.model.MetannotTemplate;
+import mn.uwvm.metannot.model.MetannotTemplateParameter;
+import mn.uwvm.metannot.util.Logger;
+import mn.uwvm.metannot.visitor.TemplateVisitor;
+
 import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 
-@SupportedAnnotationTypes("com.kayac.metannot.annotation.Template")
+@SupportedAnnotationTypes("mn.uwvm.metannot.annotation.Template")
 @SupportedSourceVersion(SourceVersion.RELEASE_6)
 public class MetannotProcessor extends AbstractProcessor {
     private static final String IMPORT_WRITER = "writeImports";
@@ -276,7 +277,7 @@ public class MetannotProcessor extends AbstractProcessor {
                 .append("    $writeTemplateParameters$(template, parameters, params, messager, writerName, builder);\n")
                 .append("    String output = builder.toString();\n")
                 .append("    if (typename != null) {\n")
-                .append("        output = com.kayac.metannot.util.MetannotUtil.replaceTokenInString(\n")
+                .append("        output = mn.uwvm.metannot.util.MetannotUtil.replaceTokenInString(\n")
                 .append("            output, \"")
                 .append(template.templateName)
                 .append("\", typename);\n")
